@@ -1,6 +1,7 @@
 flask
 python-dotenv
-python-jose-cryptodome
+python-jose
 flask-cors
 six
 azf-wsgi
+azure-functions

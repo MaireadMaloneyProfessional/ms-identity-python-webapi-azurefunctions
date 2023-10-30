@@ -14,14 +14,17 @@ import json
 from six.moves.urllib.request import urlopen
 from functools import wraps
 
-from flask import Flask, request, jsonify, _request_ctx_stack
+from flask import Flask, request, jsonify, g
+from flask.globals import request_ctx
 from flask_cors import cross_origin
 from jose import jwt
 
 app = Flask(__name__)
 
-API_AUDIENCE = "https://funcapi.<tenantname>.onmicrosoft.com/user_impersonation"
-TENANT_ID = "<tenantid>"
+#client app id of the app registration that provides the authenticated bearer token - if the bearer token is not from this app, it will not authorize
+API_AUDIENCE = "904b2529-13aa-4352-8d4f-a1db4495aa56"
+ISSUER = "https://login.microsoftonline.com/72f988bf-86f1-41af-91ab-2d7cd011db47/v2.0"
+TENANT_ID = "72f988bf-86f1-41af-91ab-2d7cd011db47"
 
 # Error handler
 class AuthError(Exception):
@@ -101,7 +104,7 @@ def requires_auth(f):
                     rsa_key,
                     algorithms=["RS256"],
                     audience=API_AUDIENCE,
-                    issuer="https://sts.windows.net/" + TENANT_ID + "/"
+                    issuer=ISSUER
                 )
             except jwt.ExpiredSignatureError:
                 raise AuthError({"code": "token_expired",
@@ -116,8 +119,8 @@ def requires_auth(f):
                                  "description":
                                  "Unable to parse authentication"
                                  " token."}, 401)
-            _request_ctx_stack.top.current_user = payload
-            # print(_request_ctx_stack.top.current_user)
+            g.top_current_user = payload
+            print(g.top_current_user)
             return f(*args, **kwargs)
         raise AuthError({"code": "invalid_header",
                          "description": "Unable to find appropriate key"}, 401)
@@ -152,7 +155,7 @@ def public():
 @cross_origin(headers=['Content-Type', 'Authorization'])
 @requires_auth
 def private():
-    return jsonify(message=_request_ctx_stack.top.current_user)
+    return jsonify(message=g.top_current_user)
 
 if __name__ == '__main__':
     app.run()
